@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 from index import InvertedIndexReader, InvertedIndexWriter
 from util import IdMap, sorted_merge_posts_and_tfs
-from postings_compression import StandardPostings, VBEPostings
+from postings_compression import StandardPostings, VBEPostings, EliasGammaPostings
 
 # Inisialisasi stemmer dan stopwords (English)
 stemmer = PorterStemmer()
