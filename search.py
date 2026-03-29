@@ -21,6 +21,7 @@ methods = [
     ("WAND TF-IDF", lambda q, k: BSBI_instance.retrieve_wand(q, k=k, scoring='tfidf')),
     ("WAND BM25",   lambda q, k: BSBI_instance.retrieve_wand(q, k=k, scoring='bm25')),
     ("LSI + FAISS", lambda q, k: lsi_model.retrieve(q, k=k)),
+    ("PRF BM25",    lambda q, k: BSBI_instance.retrieve_rocchio(q, k=k)),
 ]
 
 for query in queries:

@@ -184,6 +184,7 @@ def eval(qrels, query_file = "queries.txt", k = 1000):
     ("BM25",         BSBI_instance.retrieve_bm25),
     ("WAND TF-IDF",  lambda q, k=k: BSBI_instance.retrieve_wand(q, k=k, scoring='tfidf')),
     ("WAND BM25",    lambda q, k=k: BSBI_instance.retrieve_wand(q, k=k, scoring='bm25')),
+    ("PRF BM25",     lambda q, k=k: BSBI_instance.retrieve_rocchio(q, k=k)),
   ]
   if lsi_model:
       methods.append(("LSI (FAISS vec)", lambda q, k=k: lsi_model.retrieve(q, k=k)))

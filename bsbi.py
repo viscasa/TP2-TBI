@@ -479,6 +479,47 @@ class BSBIIndex:
             results.reverse()  # descending by score
             return results
 
+    def retrieve_rocchio(self, query, k=10, prf_k=3, top_expand=5):
+        """
+        Melakukan pseudo-relevance feedback (PRF) menggunakan BM25.
+        Tahap 1: Lakukan pencarian BM25 untuk mendapatkan prf_k dokumen teratas.
+        Tahap 2: Buka file *pseudo-relevant* tersebut, ekstrak frekuensi term-nya.
+        Tahap 3: Pilih top_expand kata yang belum ada di `query` sebagai tambahan kueri.
+        Tahap 4: Gabungkan query awal dengan kata-kata ekspansi dan lakukan pencarian ulang.
+        """
+        # First Pass
+        first_pass = self.retrieve_bm25(query, k=prf_k)
+        if not first_pass:
+            return []
+
+        original_terms = set(self._preprocess_query(query))
+        term_freqs = {}
+
+        # Rekonstruksi document vector dari disk secara real-time
+        for _, doc_path in first_pass:
+            if not os.path.exists(doc_path):
+                continue
+            with open(doc_path, 'r', encoding='utf8', errors='surrogateescape') as f:
+                content = f.read().lower()
+                tokens = re.findall(r'[a-z]+', content)
+                for token in tokens:
+                    if token in STOPWORDS:
+                        continue
+                    stemmed = stemmer.stem(token)
+                    if not stemmed:
+                        continue
+                    if stemmed in original_terms:
+                        continue
+                    term_freqs[stemmed] = term_freqs.get(stemmed, 0) + 1
+
+        # Pilih terms baru terbaik untuk diekspansi
+        sorted_terms = sorted(term_freqs.items(), key=lambda x: x[1], reverse=True)
+        expand_words = [t[0] for t in sorted_terms[:top_expand]]
+        
+        # Second Pass
+        expanded_query = query + " " + " ".join(expand_words)
+        return self.retrieve_bm25(expanded_query, k=k)
+
     def index(self):
         """
         Base indexing code
