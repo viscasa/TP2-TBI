@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="TP2 TBI Search Engine - High-performance document retrieval with multiple algorithms">
+  <title>TP2 Search Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --border: #e2e2e2;
+      --text: #1a1a1a;
+      --text-secondary: #6b6b6b;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-light: #eff6ff;
+      --highlight: #fef08a;
+      --radius: 10px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* ===== LANDING (centered search) ===== */
+    #landing {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+      transition: opacity 0.2s ease;
+    }
+    #landing.hidden { display: none; }
+
+    #landing h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      letter-spacing: -0.02em;
+    }
+    #landing p.subtitle {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      margin-bottom: 2rem;
+    }
+
+    /* ===== RESULTS PAGE (top bar + results) ===== */
+    #results-page { display: none; }
+    #results-page.visible { display: block; }
+
+    .top-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .top-bar .brand {
+      font-weight: 600;
+      font-size: 1rem;
+      white-space: nowrap;
+      color: var(--accent);
+      cursor: pointer;
+    }
+
+    /* ===== SEARCH BAR ===== */
+    .search-container {
+      position: relative;
+      width: 100%;
+      max-width: 560px;
+    }
+    .search-box {
+      display: flex;
+      align-items: center;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0 1rem;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .search-box:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    }
+    .search-box svg {
+      width: 18px;
+      height: 18px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+    .search-box input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: 0.9375rem;
+      padding: 0.7rem 0.75rem;
+      background: transparent;
+      font-family: inherit;
+      color: var(--text);
+    }
+    .search-box input::placeholder { color: #b0b0b0; }
+
+    /* Autocomplete dropdown */
+    .autocomplete-list {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      max-height: 240px;
+      overflow-y: auto;
+      z-index: 20;
+      display: none;
+    }
+    .autocomplete-list.open { display: block; }
+    .autocomplete-list li {
+      list-style: none;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      transition: background 0.1s ease;
+    }
+    .autocomplete-list li:hover,
+    .autocomplete-list li.active {
+      background: var(--accent-light);
+      color: var(--text);
+    }
+
+    /* ===== CONTROLS ===== */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .top-bar .controls { margin-top: 0; }
+
+    select, button {
+      font-family: inherit;
+      font-size: 0.8125rem;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    select {
+      appearance: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.45rem 2rem 0.45rem 0.75rem;
+      color: var(--text);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b6b6b' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.6rem center;
+    }
+    .btn-search {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1.25rem;
+      font-weight: 500;
+      transition: background 0.15s ease;
+    }
+    .btn-search:hover { background: var(--accent-hover); }
+
+    /* ===== RESULTS ===== */
+    .results-area {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 1.5rem 2rem 3rem;
+    }
+    .meta-line {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      margin-bottom: 1.25rem;
+    }
+    .suggestion {
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+      color: var(--text-secondary);
+    }
+    .suggestion a {
+      color: var(--accent);
+      text-decoration: none;
+      font-style: italic;
+    }
+    .suggestion a:hover { text-decoration: underline; }
+
+    .result-card {
+      margin-bottom: 1.25rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .result-card:last-child { border-bottom: none; }
+
+    .result-title {
+      font-size: 0.9375rem;
+      font-weight: 500;
+      color: var(--accent);
+      margin-bottom: 0.15rem;
+      word-break: break-all;
+    }
+    .result-score {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.35rem;
+    }
+    .result-snippet {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .result-snippet mark {
+      background: var(--highlight);
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+
+    .no-results {
+      text-align: center;
+      color: var(--text-secondary);
+      padding: 3rem 0;
+      font-size: 0.9375rem;
+    }
+
+    /* ===== LOADING ===== */
+    .spinner {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+    .spinner.active { display: block; }
+    .spinner::before {
+      content: '';
+      display: inline-block;
+      width: 20px; height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.5rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 640px) {
+      .top-bar { flex-wrap: wrap; padding: 0.75rem 1rem; }
+      .results-area { padding: 1rem; }
+      .search-container { max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== LANDING ==================== -->
+  <div id="landing">
+    <h1>TP2 Search Engine</h1>
+    <p class="subtitle">High-performance document retrieval</p>
+
+    <div class="search-container">
+      <div class="search-box">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input id="search-input-landing" type="text" placeholder="Search documents..." autocomplete="off">
+      </div>
+      <ul class="autocomplete-list" id="ac-landing"></ul>
+    </div>
+
+    <div class="controls">
+      <select id="method-landing">
+        <option value="bm25">BM25</option>
+        <option value="tfidf">TF-IDF</option>
+        <option value="wand">WAND BM25</option>
+        <option value="lsi">LSI + FAISS</option>
+        <option value="prf">PRF BM25</option>
+      </select>
+      <button class="btn-search" id="btn-landing">Search</button>
+    </div>
+  </div>
+
+  <!-- ==================== RESULTS PAGE ==================== -->
+  <div id="results-page">
+    <div class="top-bar">
+      <span class="brand" id="go-home">TP2</span>
+      <div class="search-container">
+        <div class="search-box">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+          </svg>
+          <input id="search-input-top" type="text" placeholder="Search documents..." autocomplete="off">
+        </div>
+        <ul class="autocomplete-list" id="ac-top"></ul>
+      </div>
+      <div class="controls">
+        <select id="method-top">
+          <option value="bm25">BM25</option>
+          <option value="tfidf">TF-IDF</option>
+          <option value="wand">WAND BM25</option>
+          <option value="lsi">LSI + FAISS</option>
+          <option value="prf">PRF BM25</option>
+        </select>
+        <button class="btn-search" id="btn-top">Search</button>
+      </div>
+    </div>
+
+    <div class="results-area">
+      <div class="meta-line" id="meta"></div>
+      <div class="suggestion" id="suggestion"></div>
+      <div class="spinner" id="spinner">Searching...</div>
+      <div id="results-list"></div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Elements =====
+    const landing       = document.getElementById('landing');
+    const resultsPage   = document.getElementById('results-page');
+    const inputLanding  = document.getElementById('search-input-landing');
+    const inputTop      = document.getElementById('search-input-top');
+    const methodLanding = document.getElementById('method-landing');
+    const methodTop     = document.getElementById('method-top');
+    const btnLanding    = document.getElementById('btn-landing');
+    const btnTop        = document.getElementById('btn-top');
+    const metaEl        = document.getElementById('meta');
+    const suggestionEl  = document.getElementById('suggestion');
+    const spinner       = document.getElementById('spinner');
+    const resultsList   = document.getElementById('results-list');
+    const acLanding     = document.getElementById('ac-landing');
+    const acTop         = document.getElementById('ac-top');
+    const goHome        = document.getElementById('go-home');
+
+    let acDebounce = null;
+
+    // ===== Core search =====
+    function doSearch(query, method) {
+      if (!query.trim()) return;
+
+      // Switch to results view
+      landing.classList.add('hidden');
+      resultsPage.classList.add('visible');
+
+      // Sync inputs
+      inputTop.value = query;
+      methodTop.value = method;
+
+      // Clear & show spinner
+      resultsList.innerHTML = '';
+      metaEl.textContent = '';
+      suggestionEl.innerHTML = '';
+      spinner.classList.add('active');
+
+      fetch(`/search?q=${encodeURIComponent(query)}&method=${method}&k=10`)
+        .then(r => r.json())
+        .then(data => {
+          spinner.classList.remove('active');
+
+          metaEl.textContent = `${data.total} results for "${query}" using ${data.method_name}  —  ${data.time_ms} ms`;
+
+          if (data.suggestion) {
+            suggestionEl.innerHTML = `Did you mean: <a href="#" id="sug-link">${data.suggestion}</a>?`;
+            document.getElementById('sug-link').addEventListener('click', e => {
+              e.preventDefault();
+              doSearch(data.suggestion, method);
+            });
+          }
+
+          if (data.results.length === 0) {
+            resultsList.innerHTML = '<div class="no-results">No documents found.</div>';
+            return;
+          }
+
+          // Highlight keywords in snippet
+          const keywords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+
+          data.results.forEach((r, i) => {
+            let snippet = escapeHtml(r.snippet);
+            keywords.forEach(kw => {
+              const re = new RegExp(`(${escapeRegex(kw)})`, 'gi');
+              snippet = snippet.replace(re, '<mark>$1</mark>');
+            });
+
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            card.innerHTML = `
+              <div class="result-title">${escapeHtml(r.doc)}</div>
+              <div class="result-score">Score: ${r.score}</div>
+              <div class="result-snippet">${snippet}...</div>
+            `;
+            resultsList.appendChild(card);
+          });
+        })
+        .catch(() => {
+          spinner.classList.remove('active');
+          resultsList.innerHTML = '<div class="no-results">An error occurred. Please try again.</div>';
+        });
+    }
+
+    // ===== Autocomplete =====
+    function setupAutocomplete(input, listEl) {
+      input.addEventListener('input', () => {
+        clearTimeout(acDebounce);
+        const val = input.value.trim();
+        if (val.length < 2) { listEl.classList.remove('open'); return; }
+        acDebounce = setTimeout(() => {
+          fetch(`/autocomplete?q=${encodeURIComponent(val)}`)
+            .then(r => r.json())
+            .then(items => {
+              if (items.length === 0) { listEl.classList.remove('open'); return; }
+              listEl.innerHTML = items.map(t => `<li>${escapeHtml(t)}</li>`).join('');
+              listEl.classList.add('open');
+              listEl.querySelectorAll('li').forEach(li => {
+                li.addEventListener('mousedown', e => {
+                  e.preventDefault();
+                  // Replace last word with suggestion
+                  const words = input.value.split(' ');
+                  words[words.length - 1] = li.textContent;
+                  input.value = words.join(' ') + ' ';
+                  listEl.classList.remove('open');
+                  input.focus();
+                });
+              });
+            });
+        }, 200);
+      });
+
+      input.addEventListener('blur', () => {
+        setTimeout(() => listEl.classList.remove('open'), 150);
+      });
+    }
+    setupAutocomplete(inputLanding, acLanding);
+    setupAutocomplete(inputTop, acTop);
+
+    // ===== Event Listeners =====
+    btnLanding.addEventListener('click', () => doSearch(inputLanding.value, methodLanding.value));
+    btnTop.addEventListener('click', () => doSearch(inputTop.value, methodTop.value));
+
+    inputLanding.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { acLanding.classList.remove('open'); doSearch(inputLanding.value, methodLanding.value); }
+    });
+    inputTop.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { acTop.classList.remove('open'); doSearch(inputTop.value, methodTop.value); }
+    });
+
+    goHome.addEventListener('click', () => {
+      resultsPage.classList.remove('visible');
+      landing.classList.remove('hidden');
+      inputLanding.value = '';
+      inputLanding.focus();
+    });
+
+    // ===== Helpers =====
+    function escapeHtml(s) {
+      const el = document.createElement('span');
+      el.textContent = s;
+      return el.innerHTML;
+    }
+    function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  </script>
+</body>
+</html>
