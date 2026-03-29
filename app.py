@@ -172,5 +172,19 @@ def autocomplete():
     return jsonify(suggestions)
 
 
+@app.route('/document')
+def document():
+    doc_path = request.args.get('path', '')
+    if not doc_path or not os.path.exists(doc_path):
+        return "Dokumen tidak ditemukan.", 404
+        
+    try:
+        with open(doc_path, 'r', encoding='utf8', errors='surrogateescape') as f:
+            content = f.read()
+        return f"<pre style='white-space: pre-wrap; word-wrap: break-word; font-family: sans-serif; padding: 20px;'>{content}</pre>"
+    except Exception as e:
+        return f"Terjadi kesalahan saat memuat dokumen: {str(e)}", 500
+
+
 if __name__ == '__main__':
     app.run(debug=False, port=5000)

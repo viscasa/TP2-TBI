@@ -220,6 +220,11 @@
       color: var(--accent);
       margin-bottom: 0.15rem;
       word-break: break-all;
+      text-decoration: none;
+      display: inline-block;
+    }
+    a.result-title:hover {
+      text-decoration: underline;
     }
     .result-score {
       font-size: 0.75rem;
@@ -407,7 +412,7 @@
             const card = document.createElement('div');
             card.className = 'result-card';
             card.innerHTML = `
-              <div class="result-title">${escapeHtml(r.doc)}</div>
+              <a href="/document?path=${encodeURIComponent(r.doc)}" target="_blank" class="result-title">${escapeHtml(r.doc)}</a>
               <div class="result-score">Score: ${r.score}</div>
               <div class="result-snippet">${snippet}...</div>
             `;
