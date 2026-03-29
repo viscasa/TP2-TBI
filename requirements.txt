@@ -1,2 +1,5 @@
 nltk
 tqdm
+numpy
+scipy
+faiss-cpu
