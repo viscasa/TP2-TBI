@@ -15,6 +15,7 @@ from tqdm import tqdm
 from index import InvertedIndexReader, InvertedIndexWriter
 from util import IdMap, sorted_merge_posts_and_tfs
 from postings_compression import StandardPostings, VBEPostings, EliasGammaPostings
+from trie import TrieIdMap
 
 # Inisialisasi stemmer dan stopwords (English)
 stemmer = PorterStemmer()
@@ -25,7 +26,7 @@ class BSBIIndex:
     """
     Attributes
     ----------
-    term_id_map(IdMap): Untuk mapping terms ke termIDs
+    term_id_map(IdMap/TrieIdMap): Untuk mapping terms ke termIDs
     doc_id_map(IdMap): Untuk mapping relative paths dari dokumen (misal,
                     /collection/0/gamma.txt) to docIDs
     data_dir(str): Path ke data
@@ -35,7 +36,7 @@ class BSBIIndex:
     index_name(str): Nama dari file yang berisi inverted index
     """
     def __init__(self, data_dir, output_dir, postings_encoding, index_name = "main_index"):
-        self.term_id_map = IdMap()
+        self.term_id_map = TrieIdMap()
         self.doc_id_map = IdMap()
         self.data_dir = data_dir
         self.output_dir = output_dir
