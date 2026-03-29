@@ -173,8 +173,10 @@ def eval(qrels, query_file = "queries.txt", k = 1000):
 
   # Konfigurasi: (nama metode, fungsi retrieval)
   methods = [
-    ("TF-IDF", BSBI_instance.retrieve_tfidf),
-    ("BM25",   BSBI_instance.retrieve_bm25),
+    ("TF-IDF",       BSBI_instance.retrieve_tfidf),
+    ("BM25",         BSBI_instance.retrieve_bm25),
+    ("WAND TF-IDF",  lambda q, k=k: BSBI_instance.retrieve_wand(q, k=k, scoring='tfidf')),
+    ("WAND BM25",    lambda q, k=k: BSBI_instance.retrieve_wand(q, k=k, scoring='bm25')),
   ]
 
   for method_name, retrieve_fn in methods:
